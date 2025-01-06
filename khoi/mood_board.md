@@ -1,7 +1,9 @@
 # Sub-Question: User Engagement Patterns
 
 ## Question 1: What percentage of users have multiple conversations?
-- WildChat: Use combination of `hashed_ip` and `header` to estimate number of repeat users
+- WildChat: Use combination of `hashed_ip` and `header` to estimate number of repeat users -> find out that "hashed_ip" is alone strong enough to uniquely identify a user
+    - Check whether the avg turns per user is different accross different gpt models
+    - 
 
 ## Question 2: What is the distribution of conversations per user?
 - WildChat: For IP addresses with multiple conversations, plot histogram of conversation counts
