@@ -86,3 +86,64 @@
         "flagged": true
     }
 ]
+
+[
+    {
+        "categories": {
+            "harassment": false,
+            "harassment/threatening": false,
+            "hate": false,
+            "hate/threatening": false,
+            "self-harm": false,
+            "self-harm/instructions": false,
+            "self-harm/intent": false,
+            "sexual": false,
+            "sexual/minors": false,
+            "violence": false,
+            "violence/graphic": false
+        },
+        "category_scores": {
+            "harassment": 9.212334e-7,
+            "harassment/threatening": 3.6271535e-7,
+            "hate": 8.254962e-7,
+            "hate/threatening": 1.331843e-8,
+            "self-harm": 1.9257865e-7,
+            "self-harm/instructions": 6.5028324e-8,
+            "self-harm/intent": 2.7525962e-7,
+            "sexual": 0.000002564017,
+            "sexual/minors": 4.523274e-7,
+            "violence": 0.000022942773,
+            "violence/graphic": 0.0000019713439
+        },
+        "flagged": false
+    },
+    {
+        "categories": {
+            "harassment": false,
+            "harassment/threatening": false,
+            "hate": false,
+            "hate/threatening": false,
+            "self-harm": false,
+            "self-harm/instructions": false,
+            "self-harm/intent": false,
+            "sexual": false,
+            "sexual/minors": false,
+            "violence": false,
+            "violence/graphic": false
+        },
+        "category_scores": {
+            "harassment": 0.0000015205982,
+            "harassment/threatening": 1.27367e-7,
+            "hate": 1.4930811e-7,
+            "hate/threatening": 2.457626e-9,
+            "self-harm": 3.2069583e-8,
+            "self-harm/instructions": 2.7247233e-7,
+            "self-harm/intent": 2.2881606e-7,
+            "sexual": 0.000033542372,
+            "sexual/minors": 8.75301e-7,
+            "violence": 0.00010941078,
+            "violence/graphic": 0.000006069021
+        },
+        "flagged": false
+    }
+]
