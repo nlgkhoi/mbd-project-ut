@@ -27,6 +27,10 @@
 
 ## Question 8: How do engagement metrics evolve over a user's lifetime?
 - WildChat: For users with many conversations, plot engagement metrics over time to spot trends
+    Draft:
+        - Repeated users: users having 
+        - Week day usage pattern of repeated users 
+        -
 
 ## Question 9: Do conversations containing toxic/unsafe content tend to be shorter or longer?
 - WildChat + Lymsys: Compare average turn lengths for conversations with openai_moderation=True vs False
