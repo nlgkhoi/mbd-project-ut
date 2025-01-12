@@ -11,7 +11,9 @@ import numpy as np
 
 spark = SparkSession.builder.appName("language_use").getOrCreate()
 
-wildchat_path = "/user/s3505235/WildChat-1M"# "../data/WildChat-1M" # full version of the data, replace it with the HDFS path
+wildchat_path = "/user/s3505235/WildChat-1M" # "../data/WildChat-1M" # full version of the data, replace it with the HDFS path
+wildchat_path = "/user/s3485269/WildChat-1M-Full"
+
 lmsys_path = "/user/s3505235/lmsys-chat-1m" # "../data/lmsys-chat-1m" # this is not neccessary, we can just use the wildchat data
 
 df_wildchat = spark.read.parquet(wildchat_path)
@@ -20,7 +22,7 @@ df_lmsys = spark.read.parquet(lmsys_path)
 df_wildchat = df_wildchat.withColumn('model_tag', regexp_extract('model', r'(gpt-\d(?:\.\d)?)', 1))
 
 # optional: filter english only
-# df_wildchat = df_wildchat.filter(col("language") == "English")
+df_wildchat = df_wildchat.filter(col("language") == "English")
 
 # language switches from the conversation column
 df_exploded = df_wildchat.select(col("model_tag"), explode(col("conversation")).alias("utterance"))
@@ -134,3 +136,16 @@ accuracy = evaluator_accuracy.evaluate(best_model.transform(test_data))
 precision = evaluator_precision.evaluate(best_model.transform(test_data))
 recall = evaluator_recall.evaluate(best_model.transform(test_data))
 print(f"Best model test set accuracy = {accuracy}, precision = {precision}, recall = {recall}")
+
+
+"""
+pyspark Training time: 12.76353144645691
+Test set accuracy = 0.855538540071465, precision = 0.8909415587973093, recall = 0.880306905370844
+Best maxIter:  100
+Best regParam:  0.01
+Best elasticNetParam:  0.0
+Best ROC AUC on test data:  0.9431515568912234
+Best model test set accuracy = 0.9187116564417178, precision = 0.9121841227056311, recall = 0.9034552845528456
+
+
+"""
