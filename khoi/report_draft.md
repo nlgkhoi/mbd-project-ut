@@ -51,6 +51,33 @@
 |    violence/graphic|  281|
 ```
 
+```
++--------------------+-----+-------------------+
+|        harmful_flag|count|         percentage|
++--------------------+-----+-------------------+
+|              sexual| 9075|  75.04961958319551|
+|            violence| 2875|  23.77605028117764|
+|          harassment| 1421| 11.751571286801191|
+|                hate|  262| 2.1667217995368837|
+|harassment_threat...|  206| 1.7036056897122065|
+|harassment/threat...|  206| 1.7036056897122065|
+|    violence/graphic|  203|  1.678795898114456|
+|    violence_graphic|  203|  1.678795898114456|
+```
+
+```
++--------------------+-----+-------------------+
+|        harmful_flag|count|         percentage|
++--------------------+-----+-------------------+
+|              sexual|12789|  70.04984389549213|
+|            violence| 4401|  24.10582242427562|
+|          harassment| 3224| 17.658980117215314|
+|                hate|  631|  3.456208577531906|
+|harassment_threat...|  513| 2.8098811414799805|
+|harassment/threat...|  513| 2.8098811414799805|
+|    violence/graphic|  281| 1.5391356739880595|
+|    violence_graphic|  281| 1.5391356739880595|
+```
 - Harmful conversation patterns on different days of the week
 
 - Percentage of harmful conversation between different model
