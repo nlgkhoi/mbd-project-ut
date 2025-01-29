@@ -14,10 +14,10 @@ spark = SparkSession.builder.appName("language_use").getOrCreate()
 wildchat_path = "/user/s3505235/WildChat-1M" # "../data/WildChat-1M" # full version of the data, replace it with the HDFS path
 wildchat_path = "/user/s3485269/WildChat-1M-Full"
 
-lmsys_path = "/user/s3505235/lmsys-chat-1m" # "../data/lmsys-chat-1m" # this is not neccessary, we can just use the wildchat data
+# lmsys_path = "/user/s3505235/lmsys-chat-1m" # "../data/lmsys-chat-1m" # this is not neccessary, we can just use the wildchat data
 
 df_wildchat = spark.read.parquet(wildchat_path)
-df_lmsys = spark.read.parquet(lmsys_path)
+# df_lmsys = spark.read.parquet(lmsys_path)
 
 df_wildchat = df_wildchat.withColumn('model_tag', regexp_extract('model', r'(gpt-\d(?:\.\d)?)', 1))
 

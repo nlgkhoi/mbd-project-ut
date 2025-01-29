@@ -1,8 +1,14 @@
 import time
 import numpy as np
-from pyspark.sql.functions import col,desc,split,regexp_extract, row_number, when,explode, lag, sum as spark_sum, avg,count, lit
+from pyspark.sql.functions import col,desc,split,regexp_extract, rand, when,explode, lag, sum as spark_sum, avg,count, lit
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import posexplode, element_at
+from pyspark.ml.feature import Tokenizer,HashingTF, IDF, StandardScaler, StopWordsRemover, CountVectorizer,Word2Vec
+
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Dense, Dropout
+import tensorflow as tf
+from tensorflow.keras.metrics import Precision, Recall
 
 spark = SparkSession.builder.appName("language_use").getOrCreate()
 
@@ -31,13 +37,13 @@ df_exploded = df_exploded.withColumn(
 )
 
 df_utterance = df_exploded.select(
-    col("model_tag"),
+    # col("model_tag"),
     col("country"),
-    col("utterance.turn_identifier").alias("turn_identifier"),
+    # col("utterance.turn_identifier").alias("turn_identifier"),
     col("utterance.content").alias("content"),
-    col("utterance.role").alias("role"),
+    # col("utterance.role").alias("role"),
     col("utterance.toxic").alias("toxic"),
-    col("utterance.redacted").alias("redacted"),
+    # col("utterance.redacted").alias("redacted"),
     col("moderation.categories.harassment").alias("harassment"),
     col("moderation.categories.hate").alias("hate"),
     col("moderation.categories.`self-harm`").alias("self_harm"),
@@ -48,11 +54,123 @@ df_utterance = df_exploded.select(
 features = ["harassment", "hate", "self_harm", "sexual", "violence"]
 for feature in features:
     df_utterance = df_utterance.withColumn(
-        feature, when(col(feature) == True, True).otherwise(False)
+        feature, when(col(feature) == True, 1).otherwise(0)
     )
 
-# df_utterance.show(truncate=False)
+n = 1000
+toxic_false_samples = df_utterance.filter(col("toxic") == False).limit(n)
+harassment_samples = df_utterance.filter(col("harassment") == 1).limit(n)
+hate_samples = df_utterance.filter(col("hate") == 1).limit(n)
+self_harm_samples = df_utterance.filter(col("self_harm") == 1).limit(n)
+sexual_samples = df_utterance.filter(col("sexual") == 1).limit(n)
+violence_samples = df_utterance.filter(col("violence") == 1).limit(n)
 
+df_utterance = toxic_false_samples \
+    .union(harassment_samples) \
+    .union(hate_samples) \
+    .union(self_harm_samples) \
+    .union(sexual_samples) \
+    .union(violence_samples)
+
+print("New DataFrame sample count:", df_utterance.count())
+      
+# df_utterance.show(truncate=False)
+df_utterance = df_utterance.withColumn("content_array", split(col("content"), " "))
+remover = StopWordsRemover(inputCol="content_array", outputCol="clean_content")
+df_utterance = remover.transform(df_utterance)
+
+df_utterance = df_utterance.sample(withReplacement=False, fraction=0.1, seed=42)
+word2vec = Word2Vec(inputCol="clean_content", outputCol="features", vectorSize=100, minCount=5)
+model = word2vec.fit(df_utterance)
+data = model.transform(df_utterance)
+
+# train_num = 8000
+# test_num = 1000
+label_cols = features
+# data = data.limit(3000)
+train_data, validation_data, test_data = data.randomSplit([0.8,0.1,0.1], seed=42)
+
+def spark_df_to_tf_dataset_binary(spark_df, feature_col="features", label_cols=features, batch_size=32, shuffle=True):
+
+    if label_cols is None:
+        raise ValueError("label_cols can not be null")
+    
+    rdd = spark_df.rdd.map(
+        lambda row: (
+            row[feature_col].toArray().astype(np.float32),
+            {label: np.array(row[label], dtype=np.float32) for label in label_cols}
+        )
+    )
+    
+    def generator():
+        for features_np, labels in rdd.toLocalIterator():
+            yield features_np, labels
+    
+    output_signature = (
+        tf.TensorSpec(shape=(None,), dtype=tf.float32),  
+        {label: tf.TensorSpec(shape=(), dtype=tf.float32) for label in label_cols}  
+    )
+    
+    ds = tf.data.Dataset.from_generator(generator, output_signature=output_signature)
+    
+    if shuffle:
+        ds = ds.shuffle(buffer_size=10000)
+    
+    ds = ds.batch(batch_size)
+    
+    return ds
+
+
+train_ds = spark_df_to_tf_dataset_binary(train_data, batch_size=16, label_cols=label_cols)
+validation_ds = spark_df_to_tf_dataset_binary(validation_data, batch_size=16, shuffle=False, label_cols=label_cols)
+test_ds = spark_df_to_tf_dataset_binary(test_data, batch_size=16, shuffle=False, label_cols=label_cols)
+
+input_dim = 100
+
+inputs = Input(shape=(input_dim,), name="inputs")
+
+x = Dense(256, activation='relu')(inputs)
+x = Dropout(0.3)(x)
+x = Dense(128, activation='relu')(x)
+x = Dropout(0.2)(x)
+
+outputs = {}
+for label in label_cols:
+    outputs[label] = Dense(1, activation='sigmoid', name=label)(x)
+
+
+model = Model(inputs=inputs, outputs=outputs)
+
+
+losses = {label: "binary_crossentropy" for label in label_cols}
+metrics = {
+    label: [
+        "accuracy",
+        Precision(name=f"{label}_precision"),
+        Recall(name=f"{label}_recall")
+    ] for label in label_cols
+}
+
+model.compile(optimizer='adam', loss=losses, metrics=metrics)
+model.summary()
+
+EPOCHS = 500
+
+model.fit(train_ds, epochs=EPOCHS, validation_data=validation_ds)
+
+# eval_results = model.evaluate(test_ds)
+
+# 1.0, 1.0, 1.0, 1.0, 0.9659090638160706
+eval_results = model.evaluate(test_ds, verbose=1)
+for i, label in enumerate(label_cols):
+    print(f"Metrics for {label}:")
+    print(f"  Loss: {eval_results[i * 3]:.4f}")
+    print(f"  Accuracy: {eval_results[i * 3 + 1]:.4f}")
+    print(f"  Precision: {eval_results[i * 3 + 2]:.4f}")
+    print(f"  Recall: {eval_results[i * 3 + 3]:.4f}")
+
+
+#--------------------- toxic analysis ---------------------
 # toxic analysis group by country
 total_samples = df_utterance.groupBy("country").count().alias("total_count").withColumnRenamed("count", "total_count").orderBy(desc("total_count"))
 top_countries = total_samples.orderBy(desc("total_count")).limit(10)
@@ -105,3 +223,5 @@ pii_ratio.show(10, truncate=False)
 |Germany       |123      |102080     |0.0012049373040752352|
 +--------------+---------+-----------+---------------------+
 """
+
+# to be continued: train some models to predict classify fine-grained toxic categories
